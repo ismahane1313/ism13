@@ -1,13 +1,13 @@
 import random
 
-# Constantes
+# Constants
 CASE_VIDE = " "
 SIGNE_X, SIGNE_O = "X", "O"
 
-# Plateau vide
+# Empty board
 plateau = [CASE_VIDE] * 9
 
-# Combinaisons gagnantes
+# Winning combination
 GAGNES = [
     (0, 1, 2), (3, 4, 5), (6, 7, 8),
     (0, 3, 6), (1, 4, 7), (2, 5, 8),
@@ -16,7 +16,7 @@ GAGNES = [
 
 
 # ----------------------
-# AFFICHAGE ET LOGIQUE
+# DISPLAY AND LOGIC
 # ----------------------
 
 def afficher_plateau():
@@ -44,157 +44,162 @@ def choisir_case_joueur():
     while choix not in range(1, 10) or plateau[choix - 1] != CASE_VIDE:
         try:
             choix = int(input("Choisissez une case (1-9) : "))
-        except ValueError:
+        except :
             choix = 0
     return choix
 
 
 # ----------------------
-# IA : 3 modes (facile / moyen / difficile)
+# IA MODE
 # ----------------------
 
 def ordinateur(board, signe, mode):
-    
-    """
-    mode = 1 : facile
-    mode = 2 : moyen
-    mode = 3 : difficile (Minimax imbattable)
-    Retourne un index 0–8.
-    """
+
 
     libres = [i for i in range(9) if board[i] == CASE_VIDE]
     adversaire = SIGNE_X if signe == SIGNE_O else SIGNE_O
 
     # ------------------------------------------
-    # MODE 1 : facile (aléatoire)
+    # MODE 1 : easy
     # ------------------------------------------
     if mode == 1:
         return random.choice(libres)
 
     # ------------------------------------------
-    # MODE 2 : moyen (gagne / bloque / aléatoire)
+    # MODE 2 : medium
     # ------------------------------------------
     if mode == 2:
 
-        # 1) Gagner si possible
+        # 1) Win if possible
         for a, b, c in GAGNES:
             ligne = [board[a], board[b], board[c]]
             if ligne.count(signe) == 2 and ligne.count(CASE_VIDE) == 1:
                 return [a, b, c][ligne.index(CASE_VIDE)]
 
-        # 2) Bloquer si le joueur va gagner
+        # 2) Block if the player is about to win
         for a, b, c in GAGNES:
             ligne = [board[a], board[b], board[c]]
             if ligne.count(adversaire) == 2 and ligne.count(CASE_VIDE) == 1:
                 return [a, b, c][ligne.index(CASE_VIDE)]
 
-        # 3) Sinon aléatoire
+        # 3) Else random
         return random.choice(libres)
 
     # ------------------------------------------
-    # MODE 3 : difficile (MINIMAX intégrÉ)
+    # MODE 3 : hard
     # ------------------------------------------
     if mode == 3:
 
-        # Évalue l'état du plateau : +1 IA gagne, -1 joueur gagne, 0 sinon
-        def eval_board(b):
-            for a, b2, c in GAGNES:
-                if b[a] != CASE_VIDE and b[a] == b[b2] == b[c]:
-                    return +1 if b[a] == signe else -1
-            return 0
+        def case_gagnante(board, joueur):
+            for a, b, c in GAGNES:
+                trio = [board[a], board[b], board[c]]
+                if trio.count(joueur) == 2 and trio.count(CASE_VIDE) == 1:
+                    if board[a] == CASE_VIDE: return a
+                    if board[b] == CASE_VIDE: return b
+                    if board[c] == CASE_VIDE: return c
+            return None
 
-        def minimax(b, isMax):
-            score = eval_board(b)
 
-            if score != 0:
-                return score
-            if CASE_VIDE not in b:
-                return 0
+        # 1. Win if possible
+        coup = case_gagnante(board, signe)
+        if coup is not None:
+            return coup
 
-            if isMax:  # tour de l'IA
-                best = -999
-                for i in range(9):
-                    if b[i] == CASE_VIDE:
-                        b[i] = signe
-                        best = max(best, minimax(b, False))
-                        b[i] = CASE_VIDE
-                return best
+        # 2. Block the player
+        coup = case_gagnante(board, adversaire)
+        if coup is not None:
+            return coup
 
-            else:  # tour de l'adversaire
-                best = 999
-                for i in range(9):
-                    if b[i] == CASE_VIDE:
-                        b[i] = adversaire
-                        best = min(best, minimax(b, True))
-                        b[i] = CASE_VIDE
-                return best
+        # 3. Take the middle
+        if board[4] == CASE_VIDE:
+            return 4
 
-        meilleur_score = -999
-        meilleur_coup = libres[0]
+        # 4. Play a corner
+        for c in [0, 2, 6, 8]:
+            if board[c] == CASE_VIDE:
+                return c
 
-        for i in libres:
-            board[i] = signe
-            score = minimax(board, False)
-            board[i] = CASE_VIDE
+        # 5. Play in any empty space
+        for i in range(9):
+            if board[i] == CASE_VIDE:
+                return i
 
-            if score > meilleur_score:
-                meilleur_score = score
-                meilleur_coup = i
 
-        return meilleur_coup
 
 
 # ----------------------
-# JEU PRINCIPAL
+# Game
 # ----------------------
 
+# Define the symbols for the players
+SIGNE_X = "X"
+SIGNE_O = "O"
+
+# Initialize the board with 9 empty spaces
+plateau = [" " for _ in range(9)]
+
+# Choose the starting player
 joueur = SIGNE_X
-nb_joueurs = int(input("Entrez le nombre de joueurs (1 ou 2) : "))
 
+# Ask for the number of players (1 or 2)
+nb_joueurs = int(input("Enter the number of players (1 or 2): "))
+
+# Two-player mode
 if nb_joueurs == 2:
 
+    # Main game loop
     while True:
-        afficher_plateau()
-        choix = choisir_case_joueur()
-        plateau[choix - 1] = joueur
+        afficher_plateau()  # Display the current board
+        choix = choisir_case_joueur()  # Ask the player to choose a square
+        plateau[choix - 1] = joueur  # Update the board with the player's symbol
 
+        # Check if the current player has won
         if victoire():
-            print(f"\nLe joueur {joueur} gagne la partie !")
+            print(f"\nPlayer {joueur} wins!")
             afficher_plateau()
-            break
+            break  # Exit loop if there is a winner
 
+        # Check if the board is full without a winner
         if match_nul():
-            print("\nMatch nul !")
+            print("\nIt's a tie!")
             afficher_plateau()
-            break
+            break  # Exit loop if it's a tie
 
+        # Switch player for the next turn
         joueur = SIGNE_O if joueur == SIGNE_X else SIGNE_X
 
+# Player vs computer mode
 else:
 
-    niveau = int(input("Choisissez le niveau de l'ordinateur (1 - facile, 2 - moyen, 3 - difficile) : "))
+    # Ask for the computer difficulty level
+    niveau = int(input("Choose the computer's level (1 - easy, 2 - medium, 3 - hard): "))
 
+    # Main game loop
     while True:
-        afficher_plateau()
+        afficher_plateau()  # Display the current board
 
         if joueur == SIGNE_X:
+            # Human player's turn
             choix = choisir_case_joueur()
-
         else:
-            case = ordinateur(plateau, SIGNE_O, niveau)
-            choix = case + 1
-            print(f"L'ordinateur joue {choix}")
+            # Computer's turn
+            case = ordinateur(plateau, SIGNE_O, niveau)  # AI chooses a square based on difficulty
+            choix = case + 1  # Adjust index for display
+            print(f"Computer plays {choix}")
 
-        plateau[choix - 1] = joueur
+        plateau[choix - 1] = joueur  # Update the board with the player's or computer's symbol
 
+        # Check if the current player has won
         if victoire():
-            print(f"\nLe joueur {joueur} gagne la partie !")
+            print(f"\nPlayer {joueur} wins!")
             afficher_plateau()
             break
 
+        # Check if the board is full without a winner
         if match_nul():
-            print("\nMatch nul !")
+            print("\nIt's a tie!")
             afficher_plateau()
             break
 
+        # Switch player for the next turn
         joueur = SIGNE_O if joueur == SIGNE_X else SIGNE_X
